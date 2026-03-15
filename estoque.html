@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Estoque - EstoquePro</title>
+
+<style>
+
+*{box-sizing:border-box;}
+
+body{
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:#0f0f0f;
+color:white;
+display:flex;
+min-height:100vh;
+}
+
+/* FUNDO */
+
+body::before{
+content:"🍔 🍟 🍕 🌮 🍗 🍺";
+font-size:70px;
+opacity:0.05;
+position:fixed;
+width:200%;
+height:200%;
+line-height:120px;
+letter-spacing:40px;
+transform:rotate(-25deg);
+z-index:0;
+}
+
+/* MENU */
+
+.sidebar{
+width:230px;
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(10px);
+padding:25px;
+z-index:2;
+}
+
+.logo{
+font-size:22px;
+color:#ff8c00;
+margin-bottom:35px;
+font-weight:bold;
+}
+
+.menu-item{
+padding:14px;
+margin-bottom:12px;
+border-radius:12px;
+cursor:pointer;
+transition:0.3s;
+}
+
+.menu-item:hover{
+background:#ff8c00;
+transform:scale(1.05);
+}
+
+/* CONTEÚDO */
+
+.main{
+flex:1;
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:40px 20px;
+}
+
+/* CARD */
+
+.card{
+width:100%;
+max-width:600px;
+background:rgba(255,255,255,0.05);
+padding:30px;
+border-radius:18px;
+box-shadow:0 0 10px rgba(255,140,0,0.2);
+display:flex;
+flex-direction:column;
+gap:15px;
+z-index:1;
+}
+
+/* PRODUTOS */
+
+.produto{
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:#1e1e1e;
+padding:12px;
+border-radius:10px;
+margin-bottom:8px;
+}
+
+.produto input{
+width:90px;
+padding:8px;
+}
+
+/* INPUT */
+
+input,select{
+padding:16px;
+border:none;
+border-radius:12px;
+background:#1e1e1e;
+color:white;
+width:100%;
+font-size:16px;
+}
+
+/* BOTÃO */
+
+button{
+padding:16px;
+border:none;
+border-radius:30px;
+background:linear-gradient(45deg,#ff8c00,#ffb347);
+color:white;
+font-weight:bold;
+font-size:16px;
+cursor:pointer;
+box-shadow:0 0 10px #ff8c00;
+}
+
+button:hover{
+transform:scale(1.03);
+}
+
+/* MOBILE */
+
+@media(max-width:800px){
+
+.sidebar{
+display:none;
+}
+
+.main{
+padding:20px;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- MENU -->
+
+<div class="sidebar">
+
+<div class="logo">🍔 EstoquePro</div>
+
+<div class="menu-item" onclick="window.location.href='dashboard.html'">🏠 Dashboard</div>
+
+<div class="menu-item" onclick="window.location.href='produtos.html'">📦 Produtos</div>
+
+<div class="menu-item" onclick="window.location.href='compras.html'">🛒 Compras</div>
+
+<div class="menu-item" onclick="window.location.href='estoque.html'">📊 Estoque</div>
+
+</div>
+
+<!-- CONTEÚDO -->
+
+<div class="main">
+
+<div class="card">
+
+<h2>Contagem de Estoque</h2>
+
+<input type="date" id="data">
+
+<input type="text" id="responsavel" placeholder="Responsável pela contagem">
+
+<select id="setorSelect">
+<option value="">Selecione o setor</option>
+</select>
+
+<div id="listaProdutos"></div>
+
+<button onclick="salvarContagem()">Salvar Contagem</button>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore,collection,getDocs,addDoc,query,where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyCkwsmbR683PMT1XoOyEykqJmLCcieQwwU",
+authDomain: "controle-de-estoque-fac87.firebaseapp.com",
+projectId: "controle-de-estoque-fac87",
+storageBucket: "controle-de-estoque-fac87.firebasestorage.app",
+messagingSenderId: "931385340836",
+appId: "1:931385340836:web:ed3cb1d560127b739b8731"
+
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userId=null;
+
+/* DATA AUTOMATICA */
+
+document.getElementById("data").value = new Date().toISOString().split('T')[0];
+
+onAuthStateChanged(auth,(user)=>{
+
+if(user){
+
+userId=user.uid;
+
+carregarSetores();
+
+}else{
+
+window.location.href="login.html";
+
+}
+
+});
+
+
+/* CARREGAR SETORES SEM REPETIR */
+
+async function carregarSetores(){
+
+const q=query(
+collection(db,"produtos"),
+where("restaurante","==",userId)
+);
+
+const querySnapshot=await getDocs(q);
+
+let setores=new Set();
+
+querySnapshot.forEach((doc)=>{
+
+setores.add(doc.data().setor.trim().toLowerCase());
+
+});
+
+let select=document.getElementById("setorSelect");
+
+select.innerHTML='<option value="">Selecione o setor</option>';
+
+setores.forEach((setor)=>{
+
+let option=document.createElement("option");
+
+option.value=setor;
+option.text=setor;
+
+select.appendChild(option);
+
+});
+
+}
+
+
+/* CARREGAR PRODUTOS DO SETOR */
+
+document.getElementById("setorSelect").addEventListener("change",async function(){
+
+let setor=this.value;
+
+let lista=document.getElementById("listaProdutos");
+
+lista.innerHTML="";
+
+const q=query(
+collection(db,"produtos"),
+where("restaurante","==",userId),
+where("setor","==",setor)
+);
+
+const querySnapshot=await getDocs(q);
+
+let produtos=[];
+
+querySnapshot.forEach((doc)=>{
+
+produtos.push(doc.data().nome);
+
+});
+
+produtos.sort();
+
+produtos.forEach((produto)=>{
+
+let div=document.createElement("div");
+
+div.className="produto";
+
+div.innerHTML=`
+<span>${produto}</span>
+<input type="number" data-produto="${produto}" placeholder="0">
+`;
+
+lista.appendChild(div);
+
+});
+
+});
+
+
+/* SALVAR CONTAGEM */
+
+window.salvarContagem=async function(){
+
+let data=document.getElementById("data").value;
+let responsavel=document.getElementById("responsavel").value;
+let setor=document.getElementById("setorSelect").value;
+
+let inputs=document.querySelectorAll("#listaProdutos input");
+
+for(let input of inputs){
+
+let produto=input.dataset.produto;
+let quantidade=Number(input.value);
+
+if(quantidade>0){
+
+await addDoc(collection(db,"contagemEstoque"),{
+
+data:data,
+responsavel:responsavel,
+setor:setor,
+produto:produto,
+quantidade:quantidade,
+restaurante:userId
+
+});
+
+}
+
+}
+
+alert("Contagem salva com sucesso!");
+
+}
+
+</script>
+
+</body>
+
+</html>

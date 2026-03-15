@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+<meta charset="UTF-8">
+<title>Dashboard - EstoquePro</title>
+
+<style>
+
+body{
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:#0f0f0f;
+color:white;
+height:100vh;
+display:flex;
+overflow:hidden;
+}
+
+/* FUNDO COM COMIDA */
+
+body::before{
+content:"🍔 🍟 🍕 🌮 🍗 🍺 🍔 🍟 🍕";
+font-size:80px;
+opacity:0.05;
+position:absolute;
+width:200%;
+height:200%;
+line-height:120px;
+letter-spacing:40px;
+transform:rotate(-25deg);
+}
+
+/* MENU */
+
+.sidebar{
+width:230px;
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(10px);
+padding:25px;
+z-index:2;
+}
+
+.logo{
+font-size:22px;
+color:#ff8c00;
+margin-bottom:40px;
+font-weight:bold;
+}
+
+.menu-item{
+padding:14px;
+margin-bottom:12px;
+border-radius:12px;
+cursor:pointer;
+transition:0.3s;
+}
+
+.menu-item:hover{
+background:#ff8c00;
+transform:scale(1.05);
+}
+
+/* AREA PRINCIPAL */
+
+.main{
+flex:1;
+padding:40px;
+z-index:1;
+}
+
+h1{
+margin-bottom:30px;
+}
+
+/* CARDS */
+
+.cards{
+display:flex;
+gap:25px;
+flex-wrap:wrap;
+}
+
+.card{
+
+width:220px;
+padding:30px;
+
+border-radius:18px;
+
+background:rgba(255,255,255,0.05);
+
+cursor:pointer;
+
+transition:0.3s;
+
+box-shadow:0 0 10px rgba(255,140,0,0.2);
+
+}
+
+.card:hover{
+
+transform:scale(1.07);
+
+box-shadow:0 0 20px #ff8c00;
+
+}
+
+.card h2{
+margin:0;
+font-size:22px;
+color:#ff8c00;
+}
+
+.card p{
+margin-top:10px;
+font-size:14px;
+opacity:0.8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- MENU LATERAL -->
+
+<div class="sidebar">
+
+<div class="logo">🍔 EstoquePro</div>
+
+<div class="menu-item" onclick="window.location.href='dashboard.html'">
+🏠 Dashboard
+</div>
+
+<div class="menu-item" onclick="window.location.href='produtos.html'">
+📦 Produtos
+</div>
+
+<div class="menu-item" onclick="window.location.href='compras.html'">
+🛒 Compras
+</div>
+
+<div class="menu-item" onclick="window.location.href='estoque.html'">
+📊 Estoque
+</div>
+
+<div class="menu-item" onclick="window.location.href='relatorios.html'">
+📑 Relatórios
+</div>
+
+<div class="menu-item" onclick="logout()">
+🚪 Sair
+</div>
+
+</div>
+
+<!-- CONTEÚDO -->
+
+<div class="main">
+
+<h1>Painel do Restaurante</h1>
+
+<div class="cards">
+
+<div class="card" onclick="window.location.href='produtos.html'">
+<h2>📦 Produtos</h2>
+<p>Cadastrar produtos</p>
+</div>
+
+<div class="card" onclick="window.location.href='compras.html'">
+<h2>🛒 Compras</h2>
+<p>Registrar compras</p>
+</div>
+
+<div class="card" onclick="window.location.href='estoque.html'">
+<h2>📊 Estoque</h2>
+<p>Contagem de estoque</p>
+</div>
+
+<div class="card" onclick="window.location.href='relatorios.html'">
+<h2>📑 Relatórios</h2>
+<p>Análise de consumo</p>
+</div>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+import {
+getAuth,
+onAuthStateChanged,
+signOut
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyCkwsmbR683PMT1XoOyEykqJmLCcieQwwU",
+authDomain: "controle-de-estoque-fac87.firebaseapp.com",
+projectId: "controle-de-estoque-fac87",
+storageBucket: "controle-de-estoque-fac87.firebasestorage.app",
+messagingSenderId: "931385340836",
+appId: "1:931385340836:web:ed3cb1d560127b739b8731"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+/* PROTEÇÃO DE LOGIN */
+
+onAuthStateChanged(auth,(user)=>{
+
+if(!user){
+
+window.location.href="login.html";
+
+}
+
+});
+
+/* LOGOUT */
+
+window.logout = function(){
+
+signOut(auth).then(()=>{
+
+window.location.href="login.html";
+
+})
+
+}
+
+</script>
+
+</body>
+
+</html>

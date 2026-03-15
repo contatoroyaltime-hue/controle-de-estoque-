@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+<meta charset="UTF-8">
+<title>Produtos</title>
+
+<style>
+
+body{
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:#0f0f0f;
+color:white;
+height:100vh;
+display:flex;
+overflow:hidden;
+}
+
+/* FUNDO */
+
+body::before{
+content:"🍔 🍕 🍟 🌮 🍗 🍺";
+font-size:80px;
+opacity:0.05;
+position:absolute;
+width:200%;
+height:200%;
+line-height:120px;
+letter-spacing:40px;
+transform:rotate(-25deg);
+}
+
+/* MENU */
+
+.sidebar{
+width:230px;
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(10px);
+padding:25px;
+}
+
+.logo{
+font-size:22px;
+color:#ff8c00;
+margin-bottom:30px;
+font-weight:bold;
+}
+
+.menu-item{
+padding:14px;
+margin-bottom:10px;
+border-radius:12px;
+cursor:pointer;
+transition:0.3s;
+}
+
+.menu-item:hover{
+background:#ff8c00;
+transform:scale(1.05);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:40px;
+z-index:1;
+}
+
+input,select{
+
+padding:14px;
+border:none;
+border-radius:12px;
+background:#1e1e1e;
+color:white;
+margin-right:10px;
+margin-bottom:10px;
+
+}
+
+button{
+
+padding:14px 25px;
+border:none;
+border-radius:30px;
+
+background:linear-gradient(45deg,#ff8c00,#ffb347);
+
+color:white;
+
+font-weight:bold;
+
+cursor:pointer;
+
+box-shadow:0 0 10px #ff8c00;
+
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+.lista{
+margin-top:30px;
+}
+
+.item{
+
+background:rgba(255,255,255,0.05);
+padding:15px;
+border-radius:10px;
+margin-bottom:10px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<div class="logo">🍔 EstoquePro</div>
+
+<div class="menu-item" onclick="window.location.href='dashboard.html'">Dashboard</div>
+
+<div class="menu-item">📦 Produtos</div>
+
+<div class="menu-item">📊 Estoque</div>
+
+<div class="menu-item">📑 Relatórios</div>
+
+</div>
+
+<div class="main">
+
+<h1>Cadastro de Produtos</h1>
+
+<input id="nomeProduto" placeholder="Nome do produto">
+
+<input id="setorProduto" placeholder="Setor (Bar, Cozinha...)">
+
+<select id="unidade">
+
+<option value="Unidade">Unidade</option>
+<option value="KG">KG</option>
+<option value="Litro">Litro</option>
+
+</select>
+
+<br>
+
+<button onclick="cadastrarProduto()">Cadastrar Produto</button>
+
+<div class="lista" id="listaProdutos"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+import {
+getAuth,
+onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+import {
+getFirestore,
+collection,
+addDoc,
+query,
+where,
+getDocs
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyCkwsmbR683PMT1XoOyEykqJmLCcieQwwU",
+authDomain: "controle-de-estoque-fac87.firebaseapp.com",
+projectId: "controle-de-estoque-fac87",
+storageBucket: "controle-de-estoque-fac87.firebasestorage.app",
+messagingSenderId: "931385340836",
+appId: "1:931385340836:web:ed3cb1d560127b739b8731"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+const db = getFirestore(app);
+
+let userId=null;
+
+
+/* VERIFICAR LOGIN */
+
+onAuthStateChanged(auth,(user)=>{
+
+if(user){
+
+userId=user.uid;
+
+carregarProdutos();
+
+}else{
+
+window.location.href="login.html";
+
+}
+
+});
+
+
+/* CADASTRAR PRODUTO */
+
+window.cadastrarProduto = async function(){
+
+let nome=document.getElementById("nomeProduto").value;
+let setor=document.getElementById("setorProduto").value;
+let unidade=document.getElementById("unidade").value;
+
+if(nome=="" || setor=="") return;
+
+await addDoc(collection(db,"produtos"),{
+
+nome:nome,
+setor:setor,
+unidade:unidade,
+restaurante:userId
+
+});
+
+document.getElementById("nomeProduto").value="";
+document.getElementById("setorProduto").value="";
+
+carregarProdutos();
+
+}
+
+
+/* CARREGAR PRODUTOS */
+
+async function carregarProdutos(){
+
+const q=query(collection(db,"produtos"),where("restaurante","==",userId));
+
+const querySnapshot=await getDocs(q);
+
+let html="";
+
+querySnapshot.forEach((doc)=>{
+
+let p=doc.data();
+
+html+=`
+<div class="item">
+<b>${p.nome}</b><br>
+Setor: ${p.setor} <br>
+Unidade: ${p.unidade}
+</div>
+`;
+
+});
+
+document.getElementById("listaProdutos").innerHTML=html;
+
+}
+
+</script>
+
+</body>
+
+</html>
