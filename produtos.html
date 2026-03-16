@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Produtos - EstoquePro</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f0f0f;
+            color: white;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        @keyframes moveBackground {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+body::before{
+  content: "";
+  background-image: url('img/fundoapp.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.15;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  animation: moveBackground 40s linear infinite;
+}
+
+        .sidebar {
+            width: 230px;
+            padding: 25px;
+        }
+
+        .logo {
+            font-size: 22px;
+            color: #ff8c00;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .menu-item {
+            padding: 14px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .menu-item:hover {
+            background: #ff8c00;
+            transform: scale(1.05);
+        }
+
+        .main {
+            flex: 1;
+            padding: 40px;
+            z-index: 1;
+            overflow-y: auto;
+        }
+
+        input,
+        select {
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #1e1e1e;
+            color: white;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 14px 25px;
+            border: none;
+            border-radius: 30px;
+            background: linear-gradient(45deg, #ff8c00, #ffb347);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 10px #ff8c00;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .lista {
+            margin-top: 30px;
+        }
+
+        .item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .item-info {
+            text-transform: capitalize;
+        }
+
+        .item-actions button {
+            margin-left: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .btn-edit {
+            background: #4CAF50; /* Verde */
+        }
+        
+        .btn-delete {
+            background: #f44336; /* Vermelho */
+        }
+
+        /* ESTILOS DO MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-content {
+            background-color: #1e1e1e;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 15px;
+            color: white;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* MOBILE */
+
+        .hamburger-menu {
+            display: none;
+            cursor: pointer;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .hamburger-menu span {
+            display: block;
+            width: 33px;
+            height: 4px;
+            margin-bottom: 5px;
+            position: relative;
+            background: #cdcdcd;
+            border-radius: 3px;
+            z-index: 1;
+            transform-origin: 4px 0px;
+            transition: transform 0.5s cubic-bezier(0.77,0.2,0.05,1.0),
+                        background 0.5s cubic-bezier(0.77,0.2,0.05,1.0),
+                        opacity 0.55s ease;
+        }
+
+        @media(max-width:800px){
+            .sidebar{
+                position: fixed;
+                left: -250px;
+                height: 100%;
+                transition: left 0.3s ease;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .hamburger-menu {
+                display: block;
+            }
+
+            .main {
+                width: 100%;
+            }
+
+            input, select {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="menu-container"></div>
+
+    <div class="main">
+        <h1>Cadastro de Produtos</h1>
+        <input id="nomeProduto" placeholder="Nome do produto">
+        <input id="setorProduto" placeholder="Setor (Bar, Cozinha...)">
+        <select id="unidade">
+            <option value="Unidade">Unidade</option>
+            <option value="KG">KG</option>
+            <option value="Litro">Litro</option>
+        </select>
+        <br>
+        <button onclick="cadastrarProduto()">Cadastrar Produto</button>
+        <div class="lista" id="listaProdutos"></div>
+    </div>
+
+    <!-- O Modal de Edição -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="fecharModalEdicao()">&times;</span>
+            <h2>Editar Produto</h2>
+            <input type="hidden" id="editProdutoId">
+            <input id="editNomeProduto" placeholder="Nome do produto"><br><br>
+            <input id="editSetorProduto" placeholder="Setor"><br><br>
+            <select id="editUnidade">
+                <option value="Unidade">Unidade</option>
+                <option value="KG">KG</option>
+                <option value="Litro">Litro</option>
+            </select><br><br>
+            <button onclick="salvarAlteracoes()">Salvar Alterações</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkwsmbR683PMT1XoOyEykqJmLCcieQwwU",
+            authDomain: "controle-de-estoque-fac87.firebaseapp.com",
+            projectId: "controle-de-estoque-fac87",
+            storageBucket: "controle-de-estoque-fac87.firebasestorage.app",
+            messagingSenderId: "931385340836",
+            appId: "1:931385340836:web:ed3cb1d560127b739b8731"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let userId = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                carregarProdutos();
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        window.cadastrarProduto = async function () {
+            let nome = document.getElementById("nomeProduto").value;
+            let setor = document.getElementById("setorProduto").value;
+            let unidade = document.getElementById("unidade").value;
+            if (nome === "" || setor === "") return;
+            await addDoc(collection(db, "produtos"), {
+                nome: nome,
+                setor: setor.toLowerCase().trim(),
+                unidade: unidade,
+                restaurante: userId
+            });
+            document.getElementById("nomeProduto").value = "";
+            document.getElementById("setorProduto").value = "";
+            carregarProdutos();
+        }
+
+        async function carregarProdutos() {
+            const q = query(collection(db, "produtos"), where("restaurante", "==", userId));
+            const querySnapshot = await getDocs(q);
+            let html = "";
+            querySnapshot.forEach((doc) => {
+                let p = doc.data();
+                html += `
+                <div class="item">
+                    <div class="item-info">
+                        <b>${p.nome}</b><br>
+                        Setor: ${p.setor} <br>
+                        Unidade: ${p.unidade}
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-edit" onclick="abrirModalEdicao('${doc.id}', '${p.nome}', '${p.setor}', '${p.unidade}')">Editar</button>
+                        <button class="btn-delete" onclick="deletarProduto('${doc.id}')">Excluir</button>
+                    </div>
+                </div>
+                `;
+            });
+            document.getElementById("listaProdutos").innerHTML = html;
+        }
+
+        window.deletarProduto = async function(id) {
+            if (confirm("Tem certeza que deseja excluir este produto?")) {
+                await deleteDoc(doc(db, "produtos", id));
+                carregarProdutos();
+            }
+        }
+        
+        window.abrirModalEdicao = function(id, nome, setor, unidade) {
+            document.getElementById('editProdutoId').value = id;
+            document.getElementById('editNomeProduto').value = nome;
+            document.getElementById('editSetorProduto').value = setor;
+            document.getElementById('editUnidade').value = unidade;
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        window.fecharModalEdicao = function() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        window.salvarAlteracoes = async function() {
+            const id = document.getElementById('editProdutoId').value;
+            const nome = document.getElementById('editNomeProduto').value;
+            const setor = document.getElementById('editSetorProduto').value;
+            const unidade = document.getElementById('editUnidade').value;
+
+            if (!nome || !setor) {
+                alert("Nome e setor são obrigatórios.");
+                return;
+            }
+
+            const produtoRef = doc(db, "produtos", id);
+            await updateDoc(produtoRef, {
+                nome: nome,
+                setor: setor.toLowerCase().trim(),
+                unidade: unidade
+            });
+
+            fecharModalEdicao();
+            carregarProdutos();
+        }
+
+    </script>
+    <script>
+        fetch('menu.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('menu-container').innerHTML = data;
+            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - EstoquePro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Basic styles - will be expanded */
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f0f0f;
+            color: white;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .hamburger-menu {
+            display: none;
+            cursor: pointer;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .hamburger-menu span {
+            display: block;
+            width: 33px;
+            height: 4px;
+            margin-bottom: 5px;
+            position: relative;
+            background: #cdcdcd;
+            border-radius: 3px;
+            z-index: 1;
+            transform-origin: 4px 0px;
+            transition: transform 0.5s cubic-bezier(0.77,0.2,0.05,1.0),
+                        background 0.5s cubic-bezier(0.77,0.2,0.05,1.0),
+                        opacity 0.55s ease;
+        }
+
+        .sidebar{
+            width:230px;
+            padding:25px;
+            z-index:2;
+        }
+
+        .logo{
+            font-size:22px;
+            color:#ff8c00;
+            margin-bottom:40px;
+            font-weight:bold;
+        }
+
+        .menu-item{
+            padding:14px;
+            margin-bottom:12px;
+            border-radius:12px;
+            cursor:pointer;
+            transition:0.3s;
+        }
+
+        .menu-item:hover{
+            background:#ff8c00;
+            transform:scale(1.05);
+        }
+
+        @media(max-width:800px){
+            .sidebar{
+                position: fixed;
+                left: -250px;
+                height: 100%;
+                transition: left 0.3s ease;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .hamburger-menu {
+                display: block;
+            }
+
+            .main {
+                width: 100%;
+            }
+        }
+
+        @keyframes moveBackground {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body::before {
+            content: "";
+            background-image: url('img/fundoapp.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            animation: moveBackground 40s linear infinite;
+        }
+
+        .main {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .filters {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        input, select, button {
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #1e1e1e;
+            color: white;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff8c00, #ffb347);
+            cursor: pointer;
+        }
+        
+        .chart-container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 18px;
+        }
+
+        .ai-assistant {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 18px;
+        }
+
+        .ai-assistant-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #ff8c00, #ffb347);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 10px #ff8c00;
+            z-index: 1000;
+        }
+
+        .ai-assistant-chat {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 350px;
+            background: #1e1e1e;
+            border-radius: 18px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .ai-assistant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ai-assistant-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .ai-assistant-close {
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        .ai-assistant-body {
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+        }
+        
+        #ai-conversation p {
+            margin: 0 0 10px 0;
+        }
+
+        .ai-assistant-footer {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #ai-input {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        @media (max-width: 800px) {
+            .filters {
+                flex-direction: column;
+            }
+
+            .ai-assistant-chat {
+                width: calc(100% - 40px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="menu-container"></div>
+
+    <div class="main">
+        <h1>Relatórios de Consumo</h1>
+
+        <div class="filters">
+            <input type="date" id="startDate">
+            <input type="date" id="endDate">
+            <select id="setorSelect">
+                <option value="">Todos os Setores</option>
+            </select>
+            <select id="produtoSelect">
+                <option value="">Todos os Produtos</option>
+            </select>
+            <button onclick="filtrarRelatorio()">Filtrar</button>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="consumptionChart"></canvas>
+        </div>
+
+        <div class="ai-assistant-button" onclick="toggleAIChat()">
+        IA Assistant
+    </div>
+
+    <div class="ai-assistant-chat">
+        <div class="ai-assistant-header">
+            <h2>IA Assistant</h2>
+            <span class="ai-assistant-close" onclick="toggleAIChat()">&times;</span>
+        </div>
+        <div class="ai-assistant-body">
+            <div id="ai-conversation"></div>
+            <div class="ai-assistant-footer">
+                <input type="text" id="ai-input" placeholder="Pergunte-me algo...">
+                <button onclick="askAI()">Enviar</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkwsmbR683PMT1XoOyEykqJmLCcieQwwU",
+            authDomain: "controle-de-estoque-fac87.firebaseapp.com",
+            projectId: "controle-de-estoque-fac87",
+            storageBucket: "controle-de-estoque-fac87.firebasestorage.app",
+            messagingSenderId: "931385340836",
+            appId: "1:931385340836:web:ed3cb1d560127b739b8731"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let userId = null;
+        let consumptionChart = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                // Load initial data
+                loadFilters();
+                filtrarRelatorio();
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        async function loadFilters() {
+            // Load sectors and products for filter dropdowns
+            const q = query(collection(db, "produtos"), where("restaurante", "==", userId));
+            const querySnapshot = await getDocs(q);
+            const setores = new Set();
+            const produtos = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                setores.add(data.setor);
+                produtos.push(data.nome);
+            });
+
+            const setorSelect = document.getElementById('setorSelect');
+            setores.forEach(setor => {
+                const option = new Option(setor, setor);
+                setorSelect.add(option);
+            });
+
+            const produtoSelect = document.getElementById('produtoSelect');
+            produtos.sort().forEach(produto => {
+                const option = new Option(produto, produto);
+                produtoSelect.add(option);
+            });
+        }
+
+        window.filtrarRelatorio = async function() {
+            console.log("Filtrando relatório...");
+            // Dates
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            // Filters
+            const setor = document.getElementById('setorSelect').value;
+            const produto = document.getElementById('produtoSelect').value;
+
+            // 1. Get Purchases
+            let comprasQuery = query(collection(db, "compras"), where("restaurante", "==", userId));
+            if (startDate) comprasQuery = query(comprasQuery, where("data", ">=", startDate));
+            if (endDate) comprasQuery = query(comprasQuery, where("data", "<=", endDate));
+            if (setor) comprasQuery = query(comprasQuery, where("setor", "==", setor));
+            if (produto) comprasQuery = query(comprasQuery, where("produto", "==", produto));
+            
+            const comprasSnapshot = await getDocs(comprasQuery);
+            const compras = {}; // { product: total_quantity }
+            comprasSnapshot.forEach(doc => {
+                const data = doc.data();
+                compras[data.produto] = (compras[data.produto] || 0) + data.quantidade;
+            });
+
+            // 2. Get Stock Counts
+            // This is more complex. We need the *last* count before the end date, 
+            // and the *first* count after the start date.
+            // For simplicity in this first version, we'll just get all counts in the range
+            // and assume the user wants to see the difference between total purchases and total counts.
+            // A more accurate calculation would require more complex queries.
+            
+            let contagemQuery = query(collection(db, "contagemEstoque"), where("restaurante", "==", userId));
+            if (startDate) contagemQuery = query(contagemQuery, where("data", ">=", startDate));
+            if (endDate) contagemQuery = query(contagemQuery, where("data", "<=", endDate));
+            if (setor) contagemQuery = query(contagemQuery, where("setor", "==", setor));
+            if (produto) contagemQuery = query(contagemQuery, where("produto", "==", produto));
+
+            const contagemSnapshot = await getDocs(contagemQuery);
+    
+            const contagensIniciais = {};
+            const contagensFinais = {};
+            
+            // Simplified logic: find first and last count for each product in the period
+            contagemSnapshot.forEach(doc => {
+                const data = doc.data();
+                if (!contagensIniciais[data.produto]) {
+                    contagensIniciais[data.produto] = {
+                        data: data.data,
+                        quantidade: data.quantidade
+                    };
+                }
+                contagensFinais[data.produto] = {
+                    data: data.data,
+                    quantidade: data.quantidade
+                };
+            });
+
+
+            // 3. Calculate Consumption
+            // Consumption = (Initial Stock + Purchases) - Final Stock
+            const consumption = {};
+            const allProducts = new Set([...Object.keys(compras), ...Object.keys(contagensIniciais), ...Object.keys(contagensFinais)]);
+
+            allProducts.forEach(p => {
+                const initial = contagensIniciais[p]?.quantidade || 0;
+                const purchase = compras[p] || 0;
+                const final = contagensFinais[p]?.quantidade || 0;
+                consumption[p] = (initial + purchase) - final;
+            });
+
+
+            // 4. Render Chart
+            renderChart(consumption);
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('consumptionChart').getContext('2d');
+            if (consumptionChart) {
+                consumptionChart.destroy();
+            }
+            consumptionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: 'Consumo (Unidades)',
+                        data: Object.values(data),
+                        backgroundColor: 'rgba(255, 140, 0, 0.7)',
+                        borderColor: 'rgba(255, 140, 0, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        window.askAI = function() {
+            const input = document.getElementById('ai-input').value.toLowerCase();
+            const conversation = document.getElementById('ai-conversation');
+            let response = "Desculpe, não entendi. Tente perguntar sobre 'consumo', 'produtos mais usados' ou 'dicas'.";
+
+            if (input.includes("consumo")) {
+                response = "A tabela de consumo mostra a diferença entre o estoque inicial mais as compras e o estoque final. Isso representa o quanto de cada produto foi utilizado no período selecionado.";
+            } else if (input.includes("produtos mais usados") || input.includes("mais usados")) {
+                // This is a more complex query. We can get the data from the chart.
+                if (consumptionChart) {
+                    const data = consumptionChart.data.datasets[0].data;
+                    const labels = consumptionChart.data.labels;
+                    if (data.length > 0) {
+                        let max = -1;
+                        let maxIndex = -1;
+                        for (let i = 0; i < data.length; i++) {
+                            if (data[i] > max) {
+                                max = data[i];
+                                maxIndex = i;
+                            }
+                        }
+                        response = `O produto mais usado no período foi: ${labels[maxIndex]} com ${max} unidades.`;
+                    } else {
+                        response = "Não há dados de consumo para analisar.";
+                    }
+                }
+            } else if (input.includes("dicas")) {
+                response = "Dica: Para reduzir o desperdício, sempre utilize o método PEPS (Primeiro que Entra, Primeiro que Sai) no seu estoque. Produtos mais antigos devem ser usados primeiro.";
+            }
+
+            conversation.innerHTML += `<p><b>Você:</b> ${input}</p>`;
+            conversation.innerHTML += `<p><b>IA:</b> ${response}</p>`;
+            document.getElementById('ai-input').value = "";
+            conversation.scrollTop = conversation.scrollHeight;
+        }
+
+        window.toggleAIChat = function() {
+            const chat = document.querySelector('.ai-assistant-chat');
+            chat.style.display = chat.style.display === 'none' || chat.style.display === '' ? 'flex' : 'none';
+        }
+    </script>
+    <script>
+        fetch('menu.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('menu-container').innerHTML = data;
+            });
+    </script>
+</body>
+</html>
