@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Produtos - EstoquePro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="produtos.css">
+    <link rel="stylesheet" href="menu.css">
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="logo">🍔 EstoquePro</div>
+        <div class="menu-item" onclick="window.location.href='dashboard.html'">🏠 Dashboard</div>
+        <div class="menu-item" onclick="window.location.href='produtos.html'">📦 Produtos</div>
+        <div class="menu-item" onclick="window.location.href='compras.html'">🛒 Compras</div>
+        <div class="menu-item" onclick="window.location.href='estoque.html'">📊 Estoque</div>
+        <div class="menu-item" onclick="window.location.href='relatorios.html'">📑 Relatórios</div>
+        <div class="menu-item" onclick="logout()">🚪 Sair</div>
+    </div>
+    <div class="hamburger-menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+    <div class="main">
+        <div class="card">
+            <h1>Cadastro de Produtos</h1>
+            <input id="nomeProduto" placeholder="Nome do produto">
+            <input id="setorProduto" placeholder="Setor (Bar, Cozinha...)">
+            <select id="unidade">
+                <option value="Unidade">Unidade</option>
+                <option value="KG">KG</option>
+                <option value="Litro">Litro</option>
+            </select>
+            <br>
+            <button onclick="cadastrarProduto()">Cadastrar Produto</button>
+        </div>
+        <div class="lista" id="listaProdutos"></div>
+    </div>
+
+    <!-- O Modal de Edição -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="fecharModalEdicao()">&times;</span>
+            <h2>Editar Produto</h2>
+            <input type="hidden" id="editProdutoId">
+            <input id="editNomeProduto" placeholder="Nome do produto"><br><br>
+            <input id="editSetorProduto" placeholder="Setor"><br><br>
+            <select id="editUnidade">
+                <option value="Unidade">Unidade</option>
+                <option value="KG">KG</option>
+                <option value="Litro">Litro</option>
+            </select><br><br>
+            <button onclick="salvarAlteracoes()">Salvar Alterações</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkwsmbR683PMT1XoOyEykqJmLCcieQwwU",
+            authDomain: "controle-de-estoque-fac87.firebaseapp.com",
+            projectId: "controle-de-estoque-fac87",
+            storageBucket: "controle-de-estoque-fac87.firebasestorage.app",
+            messagingSenderId: "931385340836",
+            appId: "1:931385340836:web:ed3cb1d560127b739b8731"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let userId = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                carregarProdutos();
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        window.cadastrarProduto = async function () {
+            let nome = document.getElementById("nomeProduto").value;
+            let setor = document.getElementById("setorProduto").value;
+            let unidade = document.getElementById("unidade").value;
+            if (nome === "" || setor === "") return;
+            await addDoc(collection(db, "produtos"), {
+                nome: nome,
+                setor: setor.toLowerCase().trim(),
+                unidade: unidade,
+                restaurante: userId
+            });
+            document.getElementById("nomeProduto").value = "";
+            document.getElementById("setorProduto").value = "";
+            carregarProdutos();
+        }
+
+        async function carregarProdutos() {
+            const q = query(collection(db, "produtos"), where("restaurante", "==", userId));
+            const querySnapshot = await getDocs(q);
+            let html = "";
+            querySnapshot.forEach((doc) => {
+                let p = doc.data();
+                html += `
+                <div class="item">
+                    <div class="item-info">
+                        <b>${p.nome}</b><br>
+                        Setor: ${p.setor} <br>
+                        Unidade: ${p.unidade}
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-edit" onclick="abrirModalEdicao('${doc.id}', '${p.nome}', '${p.setor}', '${p.unidade}')">Editar</button>
+                        <button class="btn-delete" onclick="deletarProduto('${doc.id}')">Excluir</button>
+                    </div>
+                </div>
+                `;
+            });
+            document.getElementById("listaProdutos").innerHTML = html;
+        }
+
+        window.deletarProduto = async function(id) {
+            if (confirm("Tem certeza que deseja excluir este produto?")) {
+                await deleteDoc(doc(db, "produtos", id));
+                carregarProdutos();
+            }
+        }
+        
+        window.abrirModalEdicao = function(id, nome, setor, unidade) {
+            document.getElementById('editProdutoId').value = id;
+            document.getElementById('editNomeProduto').value = nome;
+            document.getElementById('editSetorProduto').value = setor;
+            document.getElementById('editUnidade').value = unidade;
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        window.fecharModalEdicao = function() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        window.salvarAlteracoes = async function() {
+            const id = document.getElementById('editProdutoId').value;
+            const nome = document.getElementById('editNomeProduto').value;
+            const setor = document.getElementById('editSetorProduto').value;
+            const unidade = document.getElementById('editUnidade').value;
+
+            if (!nome || !setor) {
+                alert("Nome e setor são obrigatórios.");
+                return;
+            }
+
+            const produtoRef = doc(db, "produtos", id);
+            await updateDoc(produtoRef, {
+                nome: nome,
+                setor: setor.toLowerCase().trim(),
+                unidade: unidade
+            });
+
+            fecharModalEdicao();
+            carregarProdutos();
+        }
+
+    </script>
+    <script src="menu.js"></script>
+</body>
+</html>

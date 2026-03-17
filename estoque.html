@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Estoque - EstoquePro</title>
+
+<link rel="stylesheet" href="estoque.css">
+<link rel="stylesheet" href="menu.css">
+
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="logo">🍔 EstoquePro</div>
+        <div class="menu-item" onclick="window.location.href='dashboard.html'">🏠 Dashboard</div>
+        <div class="menu-item" onclick="window.location.href='produtos.html'">📦 Produtos</div>
+        <div class="menu-item" onclick="window.location.href='compras.html'">🛒 Compras</div>
+        <div class="menu-item" onclick="window.location.href='estoque.html'">📊 Estoque</div>
+        <div class="menu-item" onclick="window.location.href='relatorios.html'">📑 Relatórios</div>
+        <div class="menu-item" onclick="logout()">🚪 Sair</div>
+    </div>
+    <div class="hamburger-menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+<!-- CONTEÚDO -->
+
+<div class="main">
+
+<div class="card">
+
+<h2>Contagem de Estoque</h2>
+
+<input type="date" id="data">
+
+<input type="text" id="responsavel" placeholder="Responsável pela contagem">
+
+<select id="setorSelect">
+<option value="">Selecione o setor</option>
+</select>
+
+<div id="listaProdutos"></div>
+
+<button onclick="salvarContagem()">Salvar Contagem</button>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore,collection,getDocs,addDoc,query,where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyCkwsmbR683PMT1XoOyEykqJmLCcieQwwU",
+authDomain: "controle-de-estoque-fac87.firebaseapp.com",
+projectId: "controle-de-estoque-fac87",
+storageBucket: "controle-de-estoque-fac87.firebasestorage.app",
+messagingSenderId: "931385340836",
+appId: "1:931385340836:web:ed3cb1d560127b739b8731"
+
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userId=null;
+
+/* DATA AUTOMATICA */
+
+document.getElementById("data").value = new Date().toISOString().split('T')[0];
+
+onAuthStateChanged(auth,(user)=>{
+
+if(user){
+
+userId=user.uid;
+
+carregarSetores();
+
+}else{
+
+window.location.href="login.html";
+
+}
+
+});
+
+
+/* CARREGAR SETORES SEM REPETIR */
+
+async function carregarSetores(){
+
+const q=query(
+collection(db,"produtos"),
+where("restaurante","==",userId)
+);
+
+const querySnapshot=await getDocs(q);
+
+let setores=new Set();
+
+querySnapshot.forEach((doc)=>{
+
+setores.add(doc.data().setor.trim().toLowerCase());
+
+});
+
+let select=document.getElementById("setorSelect");
+
+select.innerHTML='<option value="">Selecione o setor</option>';
+
+setores.forEach((setor)=>{
+
+let option=document.createElement("option");
+
+option.value=setor;
+option.text = setor.charAt(0).toUpperCase() + setor.slice(1);
+
+select.appendChild(option);
+
+});
+
+}
+
+
+/* CARREGAR PRODUTOS DO SETOR */
+
+document.getElementById("setorSelect").addEventListener("change",async function(){
+
+let setorSelecionado = this.value;
+
+let lista=document.getElementById("listaProdutos");
+
+lista.innerHTML="";
+
+// Query all products for the user, without filtering by sector in the query itself
+const q=query(
+    collection(db,"produtos"),
+    where("restaurante","==",userId)
+);
+
+const querySnapshot=await getDocs(q);
+
+let produtos = [];
+
+querySnapshot.forEach((doc)=>{
+    const produto = doc.data();
+    // Perform case-insensitive comparison on the client side
+    if (produto.setor.trim().toLowerCase() === setorSelecionado) {
+        produtos.push(produto.nome);
+    }
+});
+
+produtos.sort();
+
+produtos.forEach((produto)=>{
+
+    let div=document.createElement("div");
+
+    div.className="produto";
+
+    div.innerHTML=`
+    <span>${produto}</span>
+    <input type="number" data-produto="${produto}" placeholder="0">
+    `;
+
+    lista.appendChild(div);
+
+    });
+});
+
+
+/* SALVAR CONTAGEM */
+
+window.salvarContagem=async function(){
+
+let data=document.getElementById("data").value;
+let responsavel=document.getElementById("responsavel").value;
+let setor=document.getElementById("setorSelect").value;
+
+let inputs=document.querySelectorAll("#listaProdutos input");
+
+for(let input of inputs){
+
+let produto=input.dataset.produto;
+let quantidade=Number(input.value);
+
+if(quantidade>0){
+
+await addDoc(collection(db,"contagemEstoque"),{
+
+data:data,
+responsavel:responsavel,
+setor:setor,
+produto:produto,
+quantidade:quantidade,
+restaurante:userId
+
+});
+
+}
+
+}
+
+alert("Contagem salva com sucesso!");
+
+}
+
+</script>
+<script src="menu.js"></script>
+</body>
+
+</html>

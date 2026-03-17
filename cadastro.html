@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+<meta charset="UTF-8">
+<title>Criar Conta</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="cadastro.css">
+<link rel="stylesheet" href="menu.css">
+
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="logo">🍔 EstoquePro</div>
+        <div class="menu-item" onclick="window.location.href='dashboard.html'">🏠 Dashboard</div>
+        <div class="menu-item" onclick="window.location.href='produtos.html'">📦 Produtos</div>
+        <div class="menu-item" onclick="window.location.href='compras.html'">🛒 Compras</div>
+        <div class="menu-item" onclick="window.location.href='estoque.html'">📊 Estoque</div>
+        <div class="menu-item" onclick="window.location.href='relatorios.html'">📑 Relatórios</div>
+        <div class="menu-item" onclick="logout()">🚪 Sair</div>
+    </div>
+    <div class="hamburger-menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+<div class="main">
+    <div class="container">
+
+    <h1>Criar Conta</h1>
+
+    <input type="text" id="nome" placeholder="Nome do restaurante">
+
+    <input type="text" id="telefone" placeholder="Telefone">
+
+    <input type="email" id="email" placeholder="Email">
+
+    <input type="password" id="senha" placeholder="Senha">
+
+    <input type="date" id="nascimento">
+
+    <button onclick="criarConta()">Criar Conta</button>
+
+    <div class="link" onclick="window.location.href='login.html'">
+    Já tenho conta
+    </div>
+
+    <p id="mensagem"></p>
+
+    </div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+import {
+getAuth,
+createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+import {
+getFirestore,
+doc,
+setDoc
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyCkwsmbR683PMT1XoOyEykqJmLCcieQwwU",
+authDomain: "controle-de-estoque-fac87.firebaseapp.com",
+projectId: "controle-de-estoque-fac87",
+storageBucket: "controle-de-estoque-fac87.firebasestorage.app",
+messagingSenderId: "931385340836",
+appId: "1:931385340836:web:ed3cb1d560127b739b8731"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+const db = getFirestore(app);
+
+window.criarConta = async function(){
+
+let nome = document.getElementById("nome").value;
+let telefone = document.getElementById("telefone").value;
+let email = document.getElementById("email").value;
+let senha = document.getElementById("senha").value;
+let nascimento = document.getElementById("nascimento").value;
+
+try{
+
+const userCredential = await createUserWithEmailAndPassword(auth,email,senha);
+
+const user = userCredential.user;
+
+await setDoc(doc(db,"restaurantes",user.uid),{
+
+nome:nome,
+telefone:telefone,
+email:email,
+nascimento:nascimento
+
+});
+
+alert("Conta criada com sucesso!");
+
+window.location.href="login.html";
+
+}
+
+catch(error){
+
+document.getElementById("mensagem").innerText=error.message;
+
+}
+
+}
+
+</script>
+<script src="menu.js"></script>
+</body>
+</html>
